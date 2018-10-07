@@ -231,20 +231,23 @@ function addMockFunctionsToSchema({
               info: GraphQLResolveInfo,
             ) => {
               const updatedRoot = root || {}; // TODO: should we clone instead?
-              updatedRoot[fieldName] = rootMock(root, args, context, info)[
-                fieldName
-              ];
-              // XXX this is a bit of a hack to still use mockType, which
-              // lets you mock lists etc. as well
-              // otherwise we could just set field.resolve to rootMock()[fieldName]
-              // it's like pretending there was a resolve function that ran before
-              // the root resolve function.
-              return mockType(field.type, typeName, fieldName)(
-                updatedRoot,
-                args,
-                context,
-                info,
-              );
+              return Promise
+                .resolve(rootMock(root, args, context, info)[fieldName](root, args, context, info))
+                .then((value) => {
+                  updatedRoot[fieldName] = value;
+
+                  // XXX this is a bit of a hack to still use mockType, which
+                  // lets you mock lists etc. as well
+                  // otherwise we could just set field.resolve to rootMock()[fieldName]
+                  // it's like pretending there was a resolve function that ran before
+                  // the root resolve function.
+                  return mockType(field.type, typeName, fieldName)(
+                    updatedRoot,
+                    args,
+                    context,
+                    info,
+                  );
+                })
             };
           }
         }
